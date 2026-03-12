@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 from abc import ABC, abstractmethod
 from scipy.optimize import fsolve
 
-#si = pint.UnitRegistry()
-m = 1 #* si.kg
+m = 1
+delX = 0.001
 
 class experimentBase(ABC):
     def v(self, n):
@@ -112,10 +112,13 @@ class experimentBase(ABC):
         plt.plot(self.xs[:len(times)-1], self.vs[:len(times)-1])
 
 class experiment(experimentBase):
+    def __init__(self, m, delX, delT, alfa=0):
+        super().__init__(m, delX, delT)
+        self.alfa = alfa
     def calc_v_till(self, n):
        while len(self.vs) < n+1:
            last = len(self.vs) - 1
-           self.vs.append(self.vs[last] - 1/m * self.devV(self.x(last))*self.delT)
+           self.vs.append(self.vs[last] - 1/m * self.devV(self.x(last))*self.delT - self.alfa * self.vs[last] * self.delT)
        return self.v(n)
 
     def calc_x_till(self,n):
@@ -125,27 +128,42 @@ class experiment(experimentBase):
         return self.x(n)
 
 # ex 1
-delX = 0.001
-exp_duration = 50 # s
-# calculate appropiate number of x's and v's
-experiment1 = experiment(m, delX, 0.1)
-experiment2 = experiment(m, delX, 0.01)
+def ex1():
+    exp_duration = 50 # s
+    # calculate appropiate number of x's and v's
+    experiment1 = experiment(m, delX, 0.1)
+    experiment2 = experiment(m, delX, 0.01)
 
-experiment1.plot(exp_duration)
-experiment2.plot(exp_duration)
+    experiment1.plot(exp_duration)
+    experiment2.plot(exp_duration)
 
-plt.subplot(2,2,1)
-experiment1.ph(100)
-plt.subplot(2,2,2)
-experiment1.ph(1000)
-plt.subplot(2,2,3)
-experiment2.ph(100)
-plt.subplot(2,2,4)
-experiment2.ph(1000)
-plt.show()
+    plt.subplot(2,2,1)
+    experiment1.ph(100)
+    plt.subplot(2,2,2)
+    experiment1.ph(1000)
+    plt.subplot(2,2,3)
+    experiment2.ph(100)
+    plt.subplot(2,2,4)
+    experiment2.ph(1000)
+    plt.show()
 
 # Ex2
+def ex2():
+    alpha = [.5, 5, 201] # need more!
+    for a in alpha:
+        experiment1 = experiment(m, delX, 0.01, a)
+        plt.title = f"alpha = {a}"
+        experiment1.plot(50)
 
+    i = 1
+    for a in alpha:
+        experiment2 = experiment(m, delX, 0.01, a)
+        plt.subplot(2,2,i)
+        experiment2.ph(50)
+        i += 1
+    plt.show()
+
+# This class is an intro for ex3 and ex4 (ex2 is here because I missunderstood the instructions)
 class experimentEx2(experimentBase):
     def __init__(self, m, delX, delT, alfa):
         super().__init__(m, delX, delT)
@@ -175,24 +193,56 @@ class experimentEx2(experimentBase):
         self.calc_x_till(n)
         return self.vs[n]
 
-alpha = [.5, 5, 201] # need more!
-for a in alpha:
-    ex2experiment1 = experimentEx2(m, delX, 0.01, a)
-    plt.title = f"alpha = {a}"
-    ex2experiment1.plot(50)
-
-i = 1
-for a in alpha:
-    ex2experiment2 = experimentEx2(m, delX, 0.01, a)
-    plt.subplot(2,2,i)
-    ex2experiment2.ph(50)
-    i += 1
-plt.show()
 
 # Ex3
-experimentEx3 = experimentEx2(m, delX, 0.01, 0)
-experimentEx3.precalc(1)
-info = experimentEx3.insights[1] # for the first timestamp
-n_iter = info['nfev']
-accuracy = experimentEx3.equations([experimentEx3.x(1), experimentEx3.v(1)], 0)
-print(f"Number of iterations: {n_iter}. Final accuracy: {accuracy[0]:.20f} for x and {accuracy[1]:.20f} for v")
+def ex3():
+    experimentEx3 = experimentEx2(m, delX, 0.01, 0)
+    experimentEx3.precalc(1)
+    info = experimentEx3.insights[1] # for the first timestamp
+    n_iter = info['nfev']
+    accuracy = experimentEx3.equations([experimentEx3.x(1), experimentEx3.v(1)], 0)
+    print(f"Number of iterations: {n_iter}. Final accuracy: {accuracy[0]:.20f} for x and {accuracy[1]:.20f} for v")
+
+# ex4
+def ex4():
+    exp_duration = 50 # s
+    # calculate appropiate number of x's and v's
+    exp1 = experimentEx2(m, delX, 0.1, 0)
+    exp2 = experimentEx2(m, delX, 0.01, 0)
+
+    exp1.plot(exp_duration)
+    exp2.plot(exp_duration)
+
+    plt.subplot(2,2,1)
+    exp1.ph(100)
+    plt.subplot(2,2,2)
+    exp1.ph(1000)
+    plt.subplot(2,2,3)
+    exp2.ph(100)
+    plt.subplot(2,2,4)
+    exp2.ph(1000)
+    plt.show()
+
+    alpha = [.5, 5, 201] # need more!
+    for a in alpha:
+        ex2experiment1 = experimentEx2(m, delX, 0.01, a)
+        plt.title = f"alpha = {a}"
+        ex2experiment1.plot(50)
+
+    i = 1
+    for a in alpha:
+        ex2experiment2 = experimentEx2(m, delX, 0.01, a)
+        plt.subplot(2,2,i)
+        ex2experiment2.ph(50)
+        i += 1
+    plt.show()
+
+
+print("Ex1")
+ex1()
+print("Ex2")
+ex2()
+print("Ex3")
+ex3()
+print("Ex4")
+ex4()
