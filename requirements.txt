@@ -2,3 +2,4 @@ numba
 pint
 numpy
 matplotlib
+scipy
