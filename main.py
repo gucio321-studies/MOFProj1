@@ -177,3 +177,11 @@ for a in alpha:
     ex2experiment1 = experimentEx2(m, delX, 0.01, a)
     plt.title = f"alpha = {a}"
     ex2experiment1.plot(50)
+
+i = 1
+for a in alpha:
+    ex2experiment2 = experimentEx2(m, delX, 0.01, a)
+    plt.subplot(2,2,i)
+    ex2experiment2.ph(50)
+    i += 1
+plt.show()
