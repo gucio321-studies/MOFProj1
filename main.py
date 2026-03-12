@@ -1,14 +1,48 @@
 #!/usr/bin/env python3
 import numpy as np
-import pint
-import numba as nb
 from matplotlib import pyplot as plt
-from numba.np.arrayobj import default_lt
+from abc import ABC, abstractmethod
+from scipy.optimize import fsolve
 
 #si = pint.UnitRegistry()
 m = 1 #* si.kg
 
-class experiment:
+class experimentBase(ABC):
+    def v(self, n):
+        if len(self.vs) >= n + 1:
+            return self.vs[n]
+
+        return self.calc_v_till(n)
+
+    @abstractmethod
+    def calc_v_till(self, n):
+        """
+        This should handle situations when suitable v not in vs vector. It should:
+        - do its math
+        - append to self.vs
+        - return the result
+        :param n: index till wihich it should calculate
+        :return:
+        """
+        pass
+
+    def x(self, n):
+        if len(self.xs) >= n+1:
+            return self.xs[n]
+        return self.calc_x_till(n)
+
+    @abstractmethod
+    def calc_x_till(self, n):
+        """
+        This should handle situations when suitable x not in xs vector. It should:
+        - do its math
+        - append to self.xs
+        - return the result
+        :param n:
+        :return:
+        """
+        pass
+
     def __init__(self, m, delX, delT):
         self.vs = [0]
         self.xs = [0]
@@ -19,23 +53,8 @@ class experiment:
     def V(self, x):
         return -np.exp(-((x+2)/3)**2) - 1.2 * np.exp(-((x-2)/3)**2)# * si.J
 
-    def devV(self, xn, delta_x):
-        return (self.V(xn + delta_x) - self.V(xn))/(2*delta_x)
-    def v(self, n):
-       if len(self.vs) >= n+1:
-           return self.vs[n]
-       while len(self.vs) < n+1:
-           last = len(self.vs) - 1
-           self.vs.append(self.vs[last] - 1/m * self.devV(self.x(last), delX)*self.delT)
-       return self.v(n)
-
-    def x(self,n):
-        if len(self.xs) >= n+1:
-            return self.xs[n]
-        while len(self.xs) < n+1:
-            last = len(self.xs) - 1
-            self.xs.append(self.xs[last] + self.v(last)*self.delT)
-        return self.x(n)
+    def devV(self, xn):
+        return (self.V(xn + self.delX) - self.V(xn))/(2*self.delX)
 
     def precalc(self, n):
         """
@@ -92,6 +111,18 @@ class experiment:
         self.precalc(len(times) - 1)
         plt.plot(self.xs[:len(times)-1], self.vs[:len(times)-1])
 
+class experiment(experimentBase):
+    def calc_v_till(self, n):
+       while len(self.vs) < n+1:
+           last = len(self.vs) - 1
+           self.vs.append(self.vs[last] - 1/m * self.devV(self.x(last))*self.delT)
+       return self.v(n)
+
+    def calc_x_till(self,n):
+        while len(self.xs) < n+1:
+            last = len(self.xs) - 1
+            self.xs.append(self.xs[last] + self.v(last)*self.delT)
+        return self.x(n)
 
 # ex 1
 delX = 0.001
@@ -112,3 +143,35 @@ experiment2.ph(100)
 plt.subplot(2,2,4)
 experiment2.ph(1000)
 plt.show()
+
+# Ex2
+
+class experimentEx2(experimentBase):
+    def __init__(self, m, delX, delT, alfa):
+        super().__init__(m, delX, delT)
+        self.alfa = alfa
+    # arbitrary equations writen in form of f(x) = 0 for fsolve
+    def xn_plus_1(self,x, xn, vn_plus_1, vn):
+        return x - xn - self.delT/2 * (vn_plus_1 + vn)
+    def vn_plus_1(self, v, vn, xn_plus_1, xn):
+        return v - vn - self.delT/2 * (-1/m * self.devV(xn_plus_1) - self.alfa * v - 1/m * self.devV(xn) - self.alfa * vn)
+
+    def calc_x_till(self, n):
+        while len(self.xs) < n+1:
+            last = len(self.xs) - 1
+            def equations(args):
+                xn_plus_1, vn_plus_1 = args
+                f1 = self.xn_plus_1(xn_plus_1, self.xs[last], vn_plus_1, self.vs[last])
+                f2 = self.vn_plus_1(vn_plus_1, self.vs[last], xn_plus_1, self.xs[last])
+                return[f1, f2]
+            roots = fsolve(equations, [0,0])
+            self.xs.append(roots[0])
+            self.vs.append(roots[1])
+        return self.xs[-1]
+    def calc_v_till(self, n):
+        self.calc_x_till(n)
+        return self.vs[n]
+
+alpha = .5 # need more!
+ex2experiment1 = experimentEx2(m, delX, 0.1, alpha)
+print(ex2experiment1.x(1))
