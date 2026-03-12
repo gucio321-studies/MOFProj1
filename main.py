@@ -172,6 +172,8 @@ class experimentEx2(experimentBase):
         self.calc_x_till(n)
         return self.vs[n]
 
-alpha = .5 # need more!
-ex2experiment1 = experimentEx2(m, delX, 0.1, alpha)
-print(ex2experiment1.x(1))
+alpha = [.5, 5, 201] # need more!
+for a in alpha:
+    ex2experiment1 = experimentEx2(m, delX, 0.01, a)
+    plt.title = f"alpha = {a}"
+    ex2experiment1.plot(50)
