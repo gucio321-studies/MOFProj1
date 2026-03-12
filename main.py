@@ -150,21 +150,24 @@ class experimentEx2(experimentBase):
     def __init__(self, m, delX, delT, alfa):
         super().__init__(m, delX, delT)
         self.alfa = alfa
+        self.insights = [None]
     # arbitrary equations writen in form of f(x) = 0 for fsolve
     def xn_plus_1(self,x, xn, vn_plus_1, vn):
         return x - xn - self.delT/2 * (vn_plus_1 + vn)
     def vn_plus_1(self, v, vn, xn_plus_1, xn):
         return v - vn - self.delT/2 * (-1/m * self.devV(xn_plus_1) - self.alfa * v - 1/m * self.devV(xn) - self.alfa * vn)
 
+    def equations(self, args, last):
+        xn_plus_1, vn_plus_1 = args
+        f1 = self.xn_plus_1(xn_plus_1, self.xs[last], vn_plus_1, self.vs[last])
+        f2 = self.vn_plus_1(vn_plus_1, self.vs[last], xn_plus_1, self.xs[last])
+        return [f1, f2]
+
     def calc_x_till(self, n):
         while len(self.xs) < n+1:
             last = len(self.xs) - 1
-            def equations(args):
-                xn_plus_1, vn_plus_1 = args
-                f1 = self.xn_plus_1(xn_plus_1, self.xs[last], vn_plus_1, self.vs[last])
-                f2 = self.vn_plus_1(vn_plus_1, self.vs[last], xn_plus_1, self.xs[last])
-                return[f1, f2]
-            roots = fsolve(equations, [0,0])
+            roots, info, ier, msg = fsolve(lambda x : self.equations(x, last), [0,0], full_output=True)
+            self.insights.append(info)
             self.xs.append(roots[0])
             self.vs.append(roots[1])
         return self.xs[-1]
@@ -185,3 +188,11 @@ for a in alpha:
     ex2experiment2.ph(50)
     i += 1
 plt.show()
+
+# Ex3
+experimentEx3 = experimentEx2(m, delX, 0.01, 0)
+experimentEx3.precalc(1)
+info = experimentEx3.insights[1] # for the first timestamp
+n_iter = info['nfev']
+accuracy = experimentEx3.equations([experimentEx3.x(1), experimentEx3.v(1)], 0)
+print(f"Number of iterations: {n_iter}. Final accuracy: {accuracy[0]:.20f} for x and {accuracy[1]:.20f} for v")
