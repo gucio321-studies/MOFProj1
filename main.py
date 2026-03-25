@@ -45,7 +45,7 @@ class experimentBase(ABC):
 
     def __init__(self, m, delX, delT):
         self.vs = [0]
-        self.xs = [0]
+        self.xs = [2.8]
         self.m = m
         self.delX = delX
         self.delT = delT
@@ -54,7 +54,7 @@ class experimentBase(ABC):
         return -np.exp(-((x+2)/3)**2) - 1.2 * np.exp(-((x-2)/3)**2)# * si.J
 
     def devV(self, xn):
-        return (self.V(xn + self.delX) - self.V(xn))/(2*self.delX)
+        return (self.V(xn + self.delX) - self.V(xn - self.delX))/(2*self.delX)
 
     def precalc(self, n):
         """
@@ -103,6 +103,8 @@ class experimentBase(ABC):
 
         plt.subplot(3, 2, 5)
         Ls = [Vs[i] + Eks[i] for i in range(len(Vs))]
+        plt.xlabel("Time [s]")
+        plt.ylabel("Energia całkowita")
         plt.plot(times, Ls)
 
         plt.show()
